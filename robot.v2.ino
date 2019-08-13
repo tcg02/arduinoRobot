@@ -1,6 +1,6 @@
 #include <Servo.h>
 
-Servo US_Eyes;//Ultrasound Eyes
+Servo servo;//Ultrasound Eyes
 
 int pos = 73;//
 // Constants for Interrupt Pins
@@ -241,22 +241,23 @@ void SpinLeft(int steps, int mspeed)
 void lookForward(){
   
   if(pos > 75){
-    for (pos=pos; pos >= 73; pos--) { // goes from 0 degrees to 180 degrees
+    for (pos=pos; pos >= 73; pos--) {
       // in steps of 1 degree
-      US_Eyes.write(pos);              // tell servo to go to position in variable 'pos'
+      servo.write(pos);              // tell servo to go to position in variable 'pos'
       delay(15);                       // waits 15ms for the servo to reach the position
     } 
   }
   else if(pos < 70){
-    for (pos=pos; pos <= 73; pos++) { // goes from 0 degrees to 180 degrees
+    for (pos=pos; pos <= 73; pos++) { 
       // in steps of 1 degree
-      US_Eyes.write(pos);              // tell servo to go to position in variable 'pos'
+      servo.write(pos);              // tell servo to go to position in variable 'pos'
       delay(15);                       // waits 15ms for the servo to reach the position
     } 
   } 
   else{
     pos = 73;
-    US_Eyes.write(pos);              // tell servo to go to position in variable 'pos'   
+    servo.write(pos);  
+    delay(300);                // tell servo to go to position in variable 'pos'   
   } 
 
   checkDistance('F');
@@ -266,7 +267,7 @@ void lookForward(){
 void lookRight(){
   for (pos=pos; pos >= 20; pos--) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
-    US_Eyes.write(pos);              // tell servo to go to position in variable 'pos'
+    servo.write(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   } 
   checkDistance('R');
@@ -275,7 +276,7 @@ void lookRight(){
 void lookLeft(){
   for (pos=pos; pos <= 135; pos++) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
-    US_Eyes.write(pos);              // tell servo to go to position in variable 'pos'
+    servo.write(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   }    
   checkDistance('L');
@@ -314,7 +315,7 @@ void findRoute(){
 void setup() 
 {
   Serial.begin (9600);
-  US_Eyes.attach(11);  // attaches the servo on pin 9 to the servo object
+  servo.attach(11);  // attaches the servo on pin 9 to the servo object
   
   Serial.println("Started");
   pinMode(trigPin, OUTPUT);
