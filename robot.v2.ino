@@ -1,12 +1,17 @@
 #include <Servo.h>
+#include <NewPing.h>
 
 Servo servo;//Ultrasound Eyes
 
 int pos = 73;//
 // Constants for Interrupt Pins
 // Change values if not using Arduino Uno
-int echoPin = 13;
-int trigPin = 12;
+const int echoPin = 13;
+const int trigPin = 12;
+
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+#define MIN_DISTANCE 30 
+NewPing sonar(trigPin, echoPin, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 const byte MOTOR_A = 3;  // Motor 2 Interrupt Pin - INT 1 - Right Motor
 const byte MOTOR_B = 2;  // Motor 1 Interrupt Pin - INT 0 - Left Motor
@@ -38,19 +43,7 @@ float distL=10000.00;
 float distR=10000.00;
 // Interrupt Service Routines
 
-//function decleration
-int CMtoSteps(float);
-void checkDistance(char);
-void MoveReverse(int, int);
-void MoveForward(int, int);
-void SpinRight(int, int);
-void SpinLeft(int, int);
-void lookForward();
-void lookRight();
-void lookLeft();
-void findRoute();
-
-
+ 
 // Function to convert from centimeters to steps
 int CMtoSteps(float cm) {
 
@@ -66,14 +59,8 @@ int CMtoSteps(float cm) {
 }
 
 void checkDistance(char D){
-  float duration, distance;
-  digitalWrite(trigPin, LOW); 
-  delayMicroseconds(2); 
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);  
-  duration = pulseIn(echoPin, HIGH);
-  distance = duration / 58.2;
+  float distance = sonar.ping_cm(); 
+  delay(100); 
   if(D =='L'){
     distL = distance;
   }
@@ -83,43 +70,6 @@ void checkDistance(char D){
   else{
     distF = distance;
   }
-}
-
-// Function to Move Reverse
-void MoveReverse(int steps, int mspeed) 
-{
-   counter_A = 0;  //  reset counter A to zero
-   counter_B = 0;  //  reset counter B to zero
-   
-   // Set Motor A Reverse
-   digitalWrite(in1, HIGH);
-   digitalWrite(in2, LOW);
-
-   // Set Motor B Reverse
-   digitalWrite(in3, HIGH);
-   digitalWrite(in4, LOW);
-   
-   // Go forward until step value is reached
-   while (steps > counter_A && steps > counter_B) {
-   
-    if (steps > counter_A) {
-    analogWrite(enA, mspeed);
-    } else {
-    analogWrite(enA, 0);
-    }
-    if (steps > counter_B) {
-    analogWrite(enB, mspeed);
-    } else {
-    analogWrite(enB, 0);
-    }
-   }
-    
-  // Stop when done
-  analogWrite(enA, 0);
-  analogWrite(enB, 0);
-  counter_A = 0;  //  reset counter A to zero
-  counter_B = 0;  //  reset counter B to zero 
-
 }
 
 // Function to Move in Forward
@@ -284,31 +234,24 @@ void lookLeft(){
 }
 
 void findRoute(){
-   lookForward();
-   delay(100);
-   Serial.print("Forward Distance ");
-   Serial.println(distF);
-   if(distF > 30.00 && distF < 1000.00){
-      MoveForward(CMtoSteps(100), 200);   
+   lookForward();   
+   
+   if(distF < MIN_DISTANCE || distF == 0 || distF > MAX_DISTANCE){   
+        lookRight();
+        lookForward(); 
+        lookLeft();    
+        lookForward();    
+
+        if(distR > distL){
+          SpinRight(CMtoSteps(50), 150);      
+        }
+        else{
+          SpinLeft(CMtoSteps(50), 150);        
+        }      
+       
     }
-    else{
-       lookRight();
-       delay(100);
-  
-       lookLeft();
-       delay(100);
-  
-       if(distR > distL){
-         SpinRight(CMtoSteps(50), 150);
-        
-       }
-       else{
-         SpinLeft(CMtoSteps(50), 150);
-        
-       }
-       delay(100); 
-      findRoute();
-     }
+     MoveForward(CMtoSteps(100), 200); 
+   
 }
 
 
@@ -318,31 +261,13 @@ void setup()
   servo.attach(11);  // attaches the servo on pin 9 to the servo object
   
   Serial.println("Started");
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT); 
-  // Attach the Interrupts to their ISR's
- 
   attachInterrupt(digitalPinToInterrupt (MOTOR_A), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR_B), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
- 
-
-  findRoute(); 
-
-//  digitalWrite(in1, LOW);
-//  digitalWrite(in2, HIGH);
-//  analogWrite(enA, 200);
-//  Serial.println("moving wheel A");
-//
-//  // Set Motor B Forward
-//  digitalWrite(in3, LOW);
-//  digitalWrite(in4, HIGH);
-//  analogWrite(enB, 200);
-//  Serial.println("moving wheel B");
   
 }
 
 void loop()
 {
-  
+  findRoute();
 }
 
