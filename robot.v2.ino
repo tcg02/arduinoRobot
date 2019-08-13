@@ -11,6 +11,7 @@ const int trigPin = 12;
 
 #define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 #define MIN_DISTANCE 30 
+volatile int findRouteReqCount = 0;
 NewPing sonar(trigPin, echoPin, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 const byte MOTOR_A = 3;  // Motor 2 Interrupt Pin - INT 1 - Right Motor
@@ -75,6 +76,7 @@ void checkDistance(char D){
 // Function to Move in Forward
 void MoveForward(int steps, int mspeed) 
 { 
+  findRouteReqCount = 0;
   Serial.println("Moving Forward");
    counter_A = 0;  //  reset counter A to zero
    counter_B = 0;  //  reset counter B to zero
@@ -234,7 +236,8 @@ void lookLeft(){
 }
 
 void findRoute(){
-   lookForward();   
+  findRouteReqCount++;
+  lookForward();   
    
    if(distF < MIN_DISTANCE || distF == 0 || distF > MAX_DISTANCE){   
         lookRight();
@@ -247,10 +250,25 @@ void findRoute(){
         }
         else{
           SpinLeft(CMtoSteps(50), 150);        
-        }      
+        } 
+
+        if(findRouteReqCount <= 3 ){
+          findRoute();
+        }else{
+          for(int i=0;i <= 20 ;i++){
+            digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+            delay(500);                       // wait for a second
+            digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+            delay(500); 
+          }
+          findRoute();
+        }
+             
        
+    }else{
+      MoveForward(CMtoSteps(100), 200); 
     }
-     MoveForward(CMtoSteps(100), 200); 
+     
    
 }
 
@@ -259,7 +277,7 @@ void setup()
 {
   Serial.begin (9600);
   servo.attach(11);  // attaches the servo on pin 9 to the servo object
-  
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.println("Started");
   attachInterrupt(digitalPinToInterrupt (MOTOR_A), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR_B), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
