@@ -273,9 +273,7 @@ void findRoute(){
        
     }else{  
       MoveForward(CMtoSteps(100), 200); 
-    }
-     
-   
+    }   
 }
 
 // Motor A pulse count ISR
@@ -292,14 +290,14 @@ void ISR_countB() {
 void setup() 
 {
   Serial.begin (9600);
-  servo.attach(5);  // attaches the servo on pin 9 to the servo object
+  servo.attach(5);  // attaches the servo on pin 5 to the servo object
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT); 
     
   attachInterrupt(digitalPinToInterrupt (MOTOR_A), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR_B), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
 
-   findRoute();
+  findRoute();
   
 }
 
