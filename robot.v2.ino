@@ -65,7 +65,7 @@ void checkDistance(char D){
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);  
   duration = pulseIn(echoPin, HIGH);
-  distance = duration / 58.2;
+  distance = duration / 58.2; //distance in cm
   if(D =='L'){
     distL = distance;
   }
@@ -272,7 +272,8 @@ void findRoute(){
              
        
     }else{  
-      MoveForward(CMtoSteps(100), 200); 
+      float togo = (distF*2)/3; //Lets go 2/3rd distance as seen by US sensor
+      MoveForward(CMtoSteps(togo), 200); 
     }   
 }
 
