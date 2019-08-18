@@ -23,13 +23,17 @@ const float wheeldiameter = 66.10; // Wheel diameter in millimeters, change if d
 // Integers for pulse counters
 volatile int counter_A = 0;
 volatile int counter_B = 0;
+volatile int counter_A_calib= 0; 
+volatile int counter_B_calib = 0;
+volatile int speed_A=0;
+volatile int speed_B=0;
 
 
 // Motor A
 int enA = 11;
 int in1 = 10;
 int in2 = 9;
-
+ 
 // Motor B
 int enB = 6;
 int in3 = 7;
@@ -77,6 +81,33 @@ void checkDistance(char D){
   }
 }
 
+void driveStright(int mspeed){
+
+   //Serial.print("Counter A = ");Serial.print(counter_A); Serial.print("   Counter B = ");Serial.print(counter_B); Serial.print ("   Motor A Speed = "); Serial.print(speed_A);Serial.print ("   Motor B Speed = "); Serial.println(speed_B);
+    //Uncomment this to use for csv file//Serial.print(counter_A); Serial.print(",");Serial.print(counter_B); Serial.print (","); Serial.print(speed_A);Serial.print (","); Serial.println(speed_B);
+  if(counter_A_calib != counter_B_calib){ 
+      if(counter_A_calib > counter_B_calib){
+        if(speed_B<230){
+          speed_B+=15;
+        }else{speed_B = 255;}
+  
+        analogWrite(enB, speed_B); 
+      }
+      else if(counter_A_calib < counter_B_calib){
+          speed_B-=15; 
+          analogWrite(enB, speed_B);             
+      }
+      else{
+          speed_B = mspeed;
+          analogWrite(enB, speed_B); 
+      }
+  }
+  counter_A_calib = 0;  //  reset counter A to zero
+  counter_B_calib = 0;  //  reset counter B to zero   
+    
+}
+
+
 // Function to Move in Forward
 void MoveForward(int steps, int mspeed) 
 { 
@@ -97,15 +128,19 @@ void MoveForward(int steps, int mspeed)
   analogWrite(enA, mspeed);
   analogWrite(enB, mspeed);
   
-   
+   int currentStep = 0;
    // Go in Forward until step value is reached
-   while (steps > counter_A && steps > counter_B) {   
+   while (steps > counter_A && steps > counter_B) { 
+     if(currentStep%10==0){
+        driveStright(mspeed);
+      }  
       if (steps < counter_A) {      
         analogWrite(enA, 0);
       }
       if (steps < counter_B) {
         analogWrite(enB, 0);
       } 
+      currentStep++;
     }
     
   // Stop when done
@@ -239,17 +274,22 @@ void lookLeft(){
   Serial.print("Left Distance"); Serial.println(distL);
 }
 
+void performScan(){
+  lookRight();
+  delay(10);
+  lookForward(); 
+  delay(10);
+  lookLeft();  
+  delay(10);  
+  lookForward(); 
+  delay(10);
+}
+
 void findRoute(){
   findRouteReqCount++;
-    lookRight();
-    delay(10);
-    lookForward(); 
-    delay(10);
-    lookLeft();  
-    delay(10);  
-    lookForward(); 
-    delay(10);
-   
+    performScan();
+    delay(200);
+ 
    if(distF > 2000 || distF < 20){    
         if(distR > distL){
           SpinRight(CMtoSteps(50), 150);      
@@ -272,7 +312,8 @@ void findRoute(){
              
        
     }else{  
-      float togo = (distF*2)/3; //Lets go 2/3rd distance as seen by US sensor
+      float togo = distF * 0.9; //Lets go 2/3rd distance as seen by US sensor
+      Serial.print("Moving Forward Distance "); Serial.println(togo);
       MoveForward(CMtoSteps(togo), 200); 
     }   
 }
@@ -280,11 +321,13 @@ void findRoute(){
 // Motor A pulse count ISR
 void ISR_countA() {
   counter_A++;  // increment Motor A counter value
+  counter_A_calib++;
 } 
 
 // Motor B pulse count ISR
 void ISR_countB() {
   counter_B++;  // increment Motor B counter value
+  counter_B_calib++;
 }
 
 
@@ -294,7 +337,7 @@ void setup()
   servo.attach(5);  // attaches the servo on pin 5 to the servo object
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT); 
-    
+  
   attachInterrupt(digitalPinToInterrupt (MOTOR_A), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR_B), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
 
@@ -306,4 +349,3 @@ void loop()
 {
  
 }
-
