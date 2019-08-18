@@ -1,18 +1,30 @@
 #include <Servo.h>  
 
+#define ECHO_PIN 13
+#define TRIGGER_PIN 12
+#define MOTOR_A_INTERRUPT 3  // Motor 2 Interrupt Pin - INT 1 - Right Motor
+#define MOTOR_B_INTERRUPT 2  // Motor 1 Interrupt Pin - INT 0 - Left Motor
+
+// Motor A
+#define ENABLE_MOTOR_A 11
+#define INPUT_1 10
+#define INPUT_2 9
+ 
+// Motor B
+#define ENABLE_MOTOR_B 6
+#define INPUT_3 7
+#define INPUT_4 8
+
 Servo servo;//Ultrasound Eyes
 
 int pos = 73;//
-// Constants for Interrupt Pins
-// Change values if not using Arduino Uno
-int echoPin = 13;
-int trigPin = 12;
+ 
+
  
 volatile int findRouteReqCount = 0;
  
 
-const byte MOTOR_A = 3;  // Motor 2 Interrupt Pin - INT 1 - Right Motor
-const byte MOTOR_B = 2;  // Motor 1 Interrupt Pin - INT 0 - Left Motor
+
  
 // Constant for steps in disk
 const float stepcount = 20.00;  // 20 Slots in disk, change if different
@@ -29,15 +41,7 @@ volatile int speed_A=0;
 volatile int speed_B=0;
 
 
-// Motor A
-int enA = 11;
-int in1 = 10;
-int in2 = 9;
- 
-// Motor B
-int enB = 6;
-int in3 = 7;
-int in4 = 8;
+
 
 
 float distF=10000.00;
@@ -63,12 +67,12 @@ int CMtoSteps(float cm) {
 
 void checkDistance(char D){ 
   float duration, distance;
-  digitalWrite(trigPin, LOW); 
+  digitalWrite(TRIGGER_PIN, LOW); 
   delayMicroseconds(2); 
-  digitalWrite(trigPin, HIGH);
+  digitalWrite(TRIGGER_PIN, HIGH);
   delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);  
-  duration = pulseIn(echoPin, HIGH);
+  digitalWrite(TRIGGER_PIN, LOW);  
+  duration = pulseIn(ECHO_PIN, HIGH);
   distance = duration / 58.2; //distance in cm
   if(D =='L'){
     distL = distance;
@@ -91,15 +95,15 @@ void driveStright(int mspeed){
           speed_B+=15;
         }else{speed_B = 255;}
   
-        analogWrite(enB, speed_B); 
+        analogWrite(ENABLE_MOTOR_B, speed_B); 
       }
       else if(counter_A_calib < counter_B_calib){
           speed_B-=15; 
-          analogWrite(enB, speed_B);             
+          analogWrite(ENABLE_MOTOR_B, speed_B);             
       }
       else{
           speed_B = mspeed;
-          analogWrite(enB, speed_B); 
+          analogWrite(ENABLE_MOTOR_B, speed_B); 
       }
   }
   counter_A_calib = 0;  //  reset counter A to zero
@@ -109,24 +113,23 @@ void driveStright(int mspeed){
 
 
 // Function to Move in Forward
-void MoveForward(int steps, int mspeed) 
-{ 
+void MoveForward(int steps, int mspeed){ 
   findRouteReqCount = 0;
   Serial.println("Moving Forward");
    counter_A = 0;  //  reset counter A to zero
    counter_B = 0;  //  reset counter B to zero
    
    // Set Motor A Forward
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);  
+  digitalWrite(INPUT_1, LOW);
+  digitalWrite(INPUT_2, HIGH);  
 
 
   // Set Motor B Forward
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
+  digitalWrite(INPUT_3, LOW);
+  digitalWrite(INPUT_4, HIGH);
 
-  analogWrite(enA, mspeed);
-  analogWrite(enB, mspeed);
+  analogWrite(ENABLE_MOTOR_A, mspeed);
+  analogWrite(ENABLE_MOTOR_B, mspeed);
   
    int currentStep = 0;
    // Go in Forward until step value is reached
@@ -135,17 +138,17 @@ void MoveForward(int steps, int mspeed)
         driveStright(mspeed);
       }  
       if (steps < counter_A) {      
-        analogWrite(enA, 0);
+        analogWrite(ENABLE_MOTOR_A, 0);
       }
       if (steps < counter_B) {
-        analogWrite(enB, 0);
+        analogWrite(ENABLE_MOTOR_B, 0);
       } 
       currentStep++;
     }
     
   // Stop when done
-  analogWrite(enA, 0);
-  analogWrite(enB, 0);
+  analogWrite(ENABLE_MOTOR_A, 0);
+  analogWrite(ENABLE_MOTOR_B, 0);
   counter_A = 0;  //  reset counter A to zero
   counter_B = 0;  //  reset counter B to zero 
 
@@ -154,76 +157,74 @@ void MoveForward(int steps, int mspeed)
 }
 
 // Function to Spin Right
-void SpinRight(int steps, int mspeed) 
-{
+void SpinRight(int steps, int mspeed){
   Serial.println("Spin Right");
    counter_A = 0;  //  reset counter A to zero
    counter_B = 0;  //  reset counter B to zero
    
    // Set Motor A reverse
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
+  digitalWrite(INPUT_1, LOW);
+  digitalWrite(INPUT_2, HIGH);
 
   // Set Motor B forward
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+  digitalWrite(INPUT_3, HIGH);
+  digitalWrite(INPUT_4, LOW);
    
    // Go until step value is reached
    while (steps > counter_A && steps > counter_B) {
    
     if (steps > counter_A) {
-    analogWrite(enA, mspeed);
+    analogWrite(ENABLE_MOTOR_A, mspeed);
     } else {
-    analogWrite(enA, 0);
+    analogWrite(ENABLE_MOTOR_A, 0);
     }
     if (steps > counter_B) {
-    analogWrite(enB, mspeed);
+    analogWrite(ENABLE_MOTOR_B, mspeed);
     } else {
-    analogWrite(enB, 0);
+    analogWrite(ENABLE_MOTOR_B, 0);
     }
    }
     
   // Stop when done
-  analogWrite(enA, 0);
-  analogWrite(enB, 0);
+  analogWrite(ENABLE_MOTOR_A, 0);
+  analogWrite(ENABLE_MOTOR_B, 0);
   counter_A = 0;  //  reset counter A to zero
   counter_B = 0;  //  reset counter B to zero 
 
 }
 
 // Function to Spin Left
-void SpinLeft(int steps, int mspeed) 
-{
+void SpinLeft(int steps, int mspeed){
   Serial.println("Spin Left");
    counter_A = 0;  //  reset counter A to zero
    counter_B = 0;  //  reset counter B to zero
    
    // Set Motor A forward
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
+  digitalWrite(INPUT_1, HIGH);
+  digitalWrite(INPUT_2, LOW);
 
   // Set Motor B reverse
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
+  digitalWrite(INPUT_3, LOW);
+  digitalWrite(INPUT_4, HIGH);
    
    // Go until step value is reached
    while (steps > counter_A && steps > counter_B) {
    
     if (steps > counter_A) {
-    analogWrite(enA, mspeed);
+    analogWrite(ENABLE_MOTOR_A, mspeed);
     } else {
-    analogWrite(enA, 0);
+    analogWrite(ENABLE_MOTOR_A, 0);
     }
     if (steps > counter_B) {
-    analogWrite(enB, mspeed);
+    analogWrite(ENABLE_MOTOR_B, mspeed);
     } else {
-    analogWrite(enB, 0);
+    analogWrite(ENABLE_MOTOR_B, 0);
     }
   }
     
   // Stop when done
-  analogWrite(enA, 0);
-  analogWrite(enB, 0);
+  analogWrite(ENABLE_MOTOR_A, 0);
+  analogWrite(ENABLE_MOTOR_B, 0);
   counter_A = 0;  //  reset counter A to zero
   counter_B = 0;  //  reset counter B to zero 
 
@@ -324,7 +325,7 @@ void ISR_countA() {
   counter_A_calib++;
 } 
 
-// Motor B pulse count ISR
+// Motor B pulse count ISRcounter_A_calib
 void ISR_countB() {
   counter_B++;  // increment Motor B counter value
   counter_B_calib++;
@@ -335,11 +336,11 @@ void setup()
 {
   Serial.begin (9600);
   servo.attach(5);  // attaches the servo on pin 5 to the servo object
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT); 
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT); 
   
-  attachInterrupt(digitalPinToInterrupt (MOTOR_A), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR_B), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR_A_INTERRUPT), ISR_countA, RISING);  // Increase counter A when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR_B_INTERRUPT), ISR_countB, RISING);  // Increase counter B when speed sensor pin goes High
 
   findRoute();
   
